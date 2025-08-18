@@ -20,7 +20,5 @@ class TestApplyVariables:
     def test_apply_variables_undefined_variable(self) -> None:
         code = "Title: {title}"
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Variable 'title' is undefined"):
             apply_variables(code, {})
-
-        assert "Variable 'title' is undefined" in str(exc_info.value)
