@@ -1,5 +1,6 @@
-from .lines import LogicalLine
+from .lines import LogicalLine, split_logical_lines
 from .block import BlockData, PartialBlockData
+from .variables import apply_variables
 
 
 def parse_line(line: LogicalLine) -> PartialBlockData:
@@ -15,5 +16,17 @@ def parse_line(line: LogicalLine) -> PartialBlockData:
     raise ValueError(f"Invalid key: '{raw_key}'")
 
 
-def parse_code(code: str) -> BlockData:
-    raise NotImplementedError
+def parse_code(code: str, variables: dict[str, str]) -> BlockData:
+    code = apply_variables(code, variables)
+    lines = split_logical_lines(code)
+    partial_block_data: PartialBlockData = {}
+
+    for line in lines:
+        partial_block_data.update(parse_line(line))
+
+    block_data: BlockData = {
+        "title": partial_block_data["title"],
+        "notes": partial_block_data.get("notes", None),
+    }
+
+    return block_data
