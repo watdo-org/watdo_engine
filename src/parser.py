@@ -15,12 +15,11 @@ class BlockData(TypedDict, total=True):
 
 def parse_field(field: Field) -> PartialBlockData:
     key = field["key"].strip().lower()
-    value = field["value"].strip()
 
     if key == "title":
-        return {"title": value}
+        return {"title": field["value"]}
     elif key == "notes":
-        return {"notes": value}
+        return {"notes": field["value"]}
 
     raise ValueError(f"Invalid key: '{field["key"]}'")
 
