@@ -3,8 +3,9 @@ from typing import TypedDict
 
 class PartialBlockData(TypedDict, total=False):
     title: str
-    notes: str
+    notes: str | None
 
 
-class BlockData(PartialBlockData):
-    pass
+class BlockData(TypedDict, total=True):
+    title: str
+    notes: str | None
