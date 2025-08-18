@@ -2,7 +2,8 @@ from typing import TypedDict
 
 
 class PartialBlockData(TypedDict, total=False):
-    pass
+    title: str
+    notes: str
 
 
 class BlockData(PartialBlockData):
