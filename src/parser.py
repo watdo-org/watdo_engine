@@ -1,28 +1,37 @@
-from .lines import LogicalLine, split_logical_lines
-from .block import BlockData, PartialBlockData
+from typing import TypedDict
+from .fields import Field, split_fields
 from .variables import apply_variables
 
 
-def parse_line(line: LogicalLine) -> PartialBlockData:
-    raw_key, raw_value = line["content"].split(":", 1)
-    key = raw_key.strip().lower()
-    value = raw_value.strip()
+class PartialBlockData(TypedDict, total=False):
+    title: str
+    notes: str | None
+
+
+class BlockData(TypedDict, total=True):
+    title: str
+    notes: str | None
+
+
+def parse_field(field: Field) -> PartialBlockData:
+    key = field["key"].strip().lower()
+    value = field["value"].strip()
 
     if key == "title":
         return {"title": value}
     elif key == "notes":
         return {"notes": value}
 
-    raise ValueError(f"Invalid key: '{raw_key}'")
+    raise ValueError(f"Invalid key: '{field["key"]}'")
 
 
 def parse_code(code: str, variables: dict[str, str]) -> BlockData:
     code = apply_variables(code, variables)
-    lines = split_logical_lines(code)
+    fields = split_fields(code)
     partial_block_data: PartialBlockData = {}
 
-    for line in lines:
-        partial_block_data.update(parse_line(line))
+    for field in fields:
+        partial_block_data.update(parse_field(field))
 
     block_data: BlockData = {
         "title": partial_block_data["title"],
