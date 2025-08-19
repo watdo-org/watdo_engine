@@ -39,6 +39,42 @@ class TestParseField:
 
         assert parse_field(fields[0])["notes"] == "\n- Item 1\n- Item 2\n        "
 
+    def test_tags_value(self) -> None:
+        code = "Tags:     Tag1    ,    tag2,   TAG 3   "
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tags"] == {"Tag1", "tag2", "TAG 3"}
+
+    def test_tags_value_multiline(self) -> None:
+        code = '''Tags: """
+            Tag1,
+            tag2,
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tags"] == {"Tag1", "tag2"}
+
+    def test_tags_value_empty(self) -> None:
+        code = "Tags: "
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tags"] == set()
+
+    def test_tags_value_empty_multiline(self) -> None:
+        code = '''Tags: """
+            ,
+            ,
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tags"] == set()
+
+    def test_tags_value_just_commas(self) -> None:
+        code = "Tags: , ,   ,,"
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tags"] == set()
+
 
 class TestParseCode:
     @pytest.mark.skip(reason="Not implemented yet")
