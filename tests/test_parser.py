@@ -86,6 +86,39 @@ Task 2
 
         assert parse_field(fields[0])["tasks"] == ["Task 1", "Task 2", "        Task 3"]
 
+    def test_schedule_value(self) -> None:
+        code = '''Schedule: """
+        set 2025-01-01
+        end 2025-01-02
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["schedule"] == [
+            ("set", "2025-01-01"),
+            ("end", "2025-01-02"),
+        ]
+
+    def test_schedule_value_action_only(self) -> None:
+        code = '''Schedule: """
+        set
+        end
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["schedule"] == [("set", None), ("end", None)]
+
+    def test_schedule_value_extra_whitespace(self) -> None:
+        code = '''Schedule: """
+        set     2025-01-01
+          end  2025-01-02
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["schedule"] == [
+            ("set", "2025-01-01"),
+            ("end", "2025-01-02"),
+        ]
+
 
 class TestParseCode:
     @pytest.mark.skip(reason="Not implemented yet")

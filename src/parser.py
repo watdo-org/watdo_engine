@@ -8,6 +8,7 @@ class PartialBlockData(TypedDict, total=False):
     notes: str | None
     tags: set[str] | None
     tasks: list[str] | None
+    schedule: list[tuple[str, str | None]]
 
 
 class BlockData(TypedDict, total=True):
@@ -15,6 +16,7 @@ class BlockData(TypedDict, total=True):
     notes: str | None
     tags: set[str] | None
     tasks: list[str] | None
+    schedule: list[tuple[str, str | None]]
 
 
 def parse_field(field: Field) -> PartialBlockData:
@@ -50,6 +52,26 @@ def parse_field(field: Field) -> PartialBlockData:
 
         return {"tasks": tasks}
 
+    elif key == "schedule":
+        schedule = []
+
+        for line in field["value"].splitlines():
+            line = line.strip()
+
+            if line == "":
+                continue
+
+            try:
+                action, date = line.split(" ", 1)
+                date = date.strip()
+            except ValueError:
+                action = line
+                date = None
+
+            schedule.append((action, date))
+
+        return {"schedule": schedule}
+
     raise ValueError(f"Invalid key: '{field["key"]}'")
 
 
@@ -66,6 +88,7 @@ def parse_code(code: str, variables: dict[str, str]) -> BlockData:
         "notes": partial_block_data.get("notes", None),
         "tags": partial_block_data.get("tags", None),
         "tasks": partial_block_data.get("tasks", None),
+        "schedule": partial_block_data["schedule"],
     }
 
     return block_data
