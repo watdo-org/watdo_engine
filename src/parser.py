@@ -83,12 +83,15 @@ def parse_code(code: str, variables: dict[str, str]) -> BlockData:
     for field in fields:
         partial_block_data.update(parse_field(field))
 
-    block_data: BlockData = {
-        "title": partial_block_data["title"],
-        "notes": partial_block_data.get("notes", None),
-        "tags": partial_block_data.get("tags", None),
-        "tasks": partial_block_data.get("tasks", None),
-        "schedule": partial_block_data["schedule"],
-    }
+    try:
+        block_data: BlockData = {
+            "title": partial_block_data["title"],
+            "notes": partial_block_data.get("notes", None),
+            "tags": partial_block_data.get("tags", None),
+            "tasks": partial_block_data.get("tasks", None),
+            "schedule": partial_block_data["schedule"],
+        }
+    except KeyError as error:
+        raise ValueError(f"Missing required field: {error}")
 
     return block_data

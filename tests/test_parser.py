@@ -456,14 +456,14 @@ set
         """Test parse_code with empty string."""
         code = ""
 
-        with pytest.raises(KeyError, match="'title'"):
+        with pytest.raises(ValueError, match="Missing required field: 'title'"):
             parse_code(code, {})
 
     def test_parse_code_only_whitespace(self) -> None:
         """Test parse_code with only whitespace."""
         code = "   \n  \n\t\n  "
 
-        with pytest.raises(KeyError, match="'title'"):
+        with pytest.raises(ValueError, match="Missing required field: 'title'"):
             parse_code(code, {})
 
     def test_parse_code_special_characters_in_values(self) -> None:
@@ -538,7 +538,7 @@ set
             "action 2025-01-01\n"
             '"""'
         )
-        with pytest.raises(KeyError, match="'title'"):
+        with pytest.raises(ValueError, match="Missing required field: 'title'"):
             parse_code(code_missing_title, {})
 
         # Test missing schedule
@@ -550,12 +550,12 @@ set
             "Task 1\n"
             '"""'
         )
-        with pytest.raises(KeyError, match="'schedule'"):
+        with pytest.raises(ValueError, match="Missing required field: 'schedule'"):
             parse_code(code_missing_schedule, {})
 
         # Test missing both required fields
         code_missing_both = (
             "Notes: Some notes\n" "Tags: tag1, tag2\n" 'Tasks: """\n' "Task 1\n" '"""'
         )
-        with pytest.raises(KeyError, match="'title'"):
+        with pytest.raises(ValueError, match="Missing required field: 'title'"):
             parse_code(code_missing_both, {})
