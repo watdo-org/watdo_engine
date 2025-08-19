@@ -5,9 +5,10 @@ name = "pypi"
 
 [scripts]
 check = "bash -c 'mypy . && mypy --install-types'"
-tests = "coverage run -m pytest"
+tests = "coverage run -m pytest -s -p no:warnings"
 
 [packages]
+dateparser = "*"
 
 [dev-packages]
 mypy = "*"

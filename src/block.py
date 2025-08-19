@@ -1,6 +1,7 @@
 from typing import TypedDict, Literal
 
-ScheduleEntry = tuple[Literal["set", "end"], str | None]
+Action = Literal["set", "end"]
+ScheduleEntry = tuple[Action, str | None]
 
 
 class PartialBlockData(TypedDict, total=False):
