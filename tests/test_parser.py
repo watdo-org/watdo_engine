@@ -75,6 +75,17 @@ class TestParseField:
 
         assert parse_field(fields[0])["tags"] == set()
 
+    def test_tasks_value(self) -> None:
+        code = '''Tasks: """
+Task 1
+
+Task 2
+        Task 3
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["tasks"] == ["Task 1", "Task 2", "        Task 3"]
+
 
 class TestParseCode:
     @pytest.mark.skip(reason="Not implemented yet")

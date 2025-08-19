@@ -7,12 +7,14 @@ class PartialBlockData(TypedDict, total=False):
     title: str
     notes: str | None
     tags: set[str] | None
+    tasks: list[str] | None
 
 
 class BlockData(TypedDict, total=True):
     title: str
     notes: str | None
     tags: set[str] | None
+    tasks: list[str] | None
 
 
 def parse_field(field: Field) -> PartialBlockData:
@@ -37,6 +39,17 @@ def parse_field(field: Field) -> PartialBlockData:
 
         return {"tags": set(tags)}
 
+    elif key == "tasks":
+        tasks = []
+
+        for line in field["value"].splitlines():
+            if line.strip() == "":
+                continue
+
+            tasks.append(line)
+
+        return {"tasks": tasks}
+
     raise ValueError(f"Invalid key: '{field["key"]}'")
 
 
@@ -52,6 +65,7 @@ def parse_code(code: str, variables: dict[str, str]) -> BlockData:
         "title": partial_block_data["title"],
         "notes": partial_block_data.get("notes", None),
         "tags": partial_block_data.get("tags", None),
+        "tasks": partial_block_data.get("tasks", None),
     }
 
     return block_data
