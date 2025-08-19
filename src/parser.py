@@ -1,22 +1,6 @@
-from typing import TypedDict
+from .block import BlockData, PartialBlockData
 from .fields import Field, split_fields
 from .variables import apply_variables
-
-
-class PartialBlockData(TypedDict, total=False):
-    title: str
-    notes: str | None
-    tags: set[str] | None
-    tasks: list[str] | None
-    schedule: list[tuple[str, str | None]]
-
-
-class BlockData(TypedDict, total=True):
-    title: str
-    notes: str | None
-    tags: set[str] | None
-    tasks: list[str] | None
-    schedule: list[tuple[str, str | None]]
 
 
 def parse_field(field: Field) -> PartialBlockData:
