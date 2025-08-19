@@ -604,3 +604,95 @@ set
         )
         with pytest.raises(ValueError, match="Invalid action: invalid_action"):
             parse_code(code_mixed_actions, {})
+
+    def test_parse_code_fields_in_any_order(self) -> None:
+        """Test parse_code with fields in different orders."""
+        # Test with Schedule first, then Title
+        code_schedule_first = (
+            'Schedule: """\n'
+            "set 2025-01-01\n"
+            '"""\n'
+            "Title: Schedule First\n"
+            "Notes: Notes after title\n"
+            "Tags: tag1, tag2\n"
+            'Tasks: """\n'
+            "Task 1\n"
+            '"""'
+        )
+        block_data = parse_code(code_schedule_first, {})
+        assert block_data["title"] == " Schedule First"
+        assert block_data["schedule"] == [("set", "2025-01-01")]
+
+        # Test with Tags first, then Title, then Schedule
+        code_tags_first = (
+            "Tags: tag1, tag2\n"
+            "Title: Tags First\n"
+            'Schedule: """\n'
+            "end 2025-01-31\n"
+            '"""\n'
+            "Notes: Notes at the end\n"
+            'Tasks: """\n'
+            "Task 1\n"
+            '"""'
+        )
+        block_data = parse_code(code_tags_first, {})
+        assert block_data["title"] == " Tags First"
+        assert block_data["tags"] == {"tag1", "tag2"}
+        assert block_data["schedule"] == [("end", "2025-01-31")]
+
+        # Test with Tasks first, then Schedule, then Title
+        code_tasks_first = (
+            'Tasks: """\n'
+            "Task 1\n"
+            "Task 2\n"
+            '"""\n'
+            'Schedule: """\n'
+            "set 2025-01-01\n"
+            '"""\n'
+            "Title: Tasks First\n"
+            "Notes: Notes at the end\n"
+            "Tags: tag3, tag4"
+        )
+        block_data = parse_code(code_tasks_first, {})
+        assert block_data["title"] == " Tasks First"
+        assert block_data["tasks"] == ["Task 1", "Task 2"]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
+        assert block_data["tags"] == {"tag3", "tag4"}
+
+        # Test with Notes first, then Schedule, then Title
+        code_notes_first = (
+            "Notes: Notes come first\n"
+            'Schedule: """\n'
+            "end 2025-01-31\n"
+            '"""\n'
+            "Title: Notes First\n"
+            "Tags: tag5, tag6\n"
+            'Tasks: """\n'
+            "Task 3\n"
+            '"""'
+        )
+        block_data = parse_code(code_notes_first, {})
+        assert block_data["title"] == " Notes First"
+        assert block_data["notes"] == " Notes come first"
+        assert block_data["schedule"] == [("end", "2025-01-31")]
+        assert block_data["tags"] == {"tag5", "tag6"}
+        assert block_data["tasks"] == ["Task 3"]
+
+        # Test with completely random order
+        code_random_order = (
+            "Tags: random, order\n"
+            'Tasks: """\n'
+            "Random task\n"
+            '"""\n'
+            "Title: Random Order\n"
+            'Schedule: """\n'
+            "set 2025-01-01\n"
+            '"""\n'
+            "Notes: Random notes"
+        )
+        block_data = parse_code(code_random_order, {})
+        assert block_data["title"] == " Random Order"
+        assert block_data["notes"] == " Random notes"
+        assert block_data["tags"] == {"random", "order"}
+        assert block_data["tasks"] == ["Random task"]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
