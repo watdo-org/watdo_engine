@@ -1,4 +1,5 @@
-from .block import BlockData, PartialBlockData
+from typing import cast
+from .block import BlockData, PartialBlockData, ScheduleEntry
 from .fields import Field, split_fields
 from .variables import apply_variables
 
@@ -37,7 +38,7 @@ def parse_field(field: Field) -> PartialBlockData:
         return {"tasks": tasks}
 
     elif key == "schedule":
-        schedule = []
+        schedule: list[ScheduleEntry] = []
 
         for line in field["value"].splitlines():
             line = line.strip()
@@ -55,7 +56,7 @@ def parse_field(field: Field) -> PartialBlockData:
             if action not in ["set", "end"]:
                 raise ValueError(f"Invalid action: {action}")
 
-            schedule.append((action, date))
+            schedule.append(cast(ScheduleEntry, (action, date)))
 
         return {"schedule": schedule}
 
