@@ -1,11 +1,43 @@
 import pytest
+from src.fields import split_fields
 from src.parser import parse_field, parse_code
 
 
 class TestParseField:
-    @pytest.mark.skip(reason="Not implemented yet")
-    def test_parse_field(self) -> None:
-        pass
+    def test_key_normalized(self) -> None:
+        code = "     TItle    :    Hello    "
+        fields = list(split_fields(code))
+
+        assert "title" in parse_field(fields[0])
+
+    def test_unchanged_values(self) -> None:
+        code = "     TItle    :    Hello    \nNotes:---World!"
+
+        for field in split_fields(code):
+            normalized_key = field["key"].strip().lower()
+            assert field["value"] == parse_field(field)[normalized_key]  # type: ignore[literal-required]
+
+    def test_invalid_key(self) -> None:
+        code = "Invalid Key : Value"
+        fields = list(split_fields(code))
+
+        with pytest.raises(ValueError, match="Invalid key: 'Invalid Key '"):
+            parse_field(fields[0])
+
+    def test_title_value(self) -> None:
+        code = "Title:      Hello                  "
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["title"] == "      Hello                  "
+
+    def test_notes_value(self) -> None:
+        code = '''Notes: """
+- Item 1
+- Item 2
+        """'''
+        fields = list(split_fields(code))
+
+        assert parse_field(fields[0])["notes"] == "\n- Item 1\n- Item 2\n        "
 
 
 class TestParseCode:
