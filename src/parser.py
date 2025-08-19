@@ -68,6 +68,9 @@ def parse_field(field: Field) -> PartialBlockData:
                 action = line
                 date = None
 
+            if action not in ["set", "end"]:
+                raise ValueError(f"Invalid action: {action}")
+
             schedule.append((action, date))
 
         return {"schedule": schedule}

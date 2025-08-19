@@ -119,6 +119,15 @@ Task 2
             ("end", "2025-01-02"),
         ]
 
+    def test_schedule_value_invalid_action(self) -> None:
+        code = '''Schedule: """
+        start 2025-01-01
+        """'''
+        fields = list(split_fields(code))
+
+        with pytest.raises(ValueError, match="Invalid action: start"):
+            parse_field(fields[0])
+
 
 class TestParseCode:
     def test_parse_code(self) -> None:
@@ -174,7 +183,7 @@ set
             "Task 3\n"
             '"""\n'
             'Schedule: """\n'
-            "start 2025-01-01\n"
+            "set 2025-01-01\n"
             "end 2025-01-31\n"
             '"""'
         )
@@ -185,7 +194,7 @@ set
         assert block_data["tags"] == {"important", "urgent", "project"}
         assert block_data["tasks"] == ["Task 1", "Task 2", "Task 3"]
         assert block_data["schedule"] == [
-            ("start", "2025-01-01"),
+            ("set", "2025-01-01"),
             ("end", "2025-01-31"),
         ]
 
@@ -200,8 +209,8 @@ set
             "Review {task2}\n"
             '"""\n'
             'Schedule: """\n'
-            "begin {start_date}\n"
-            "finish {end_date}\n"
+            "set {start_date}\n"
+            "end {end_date}\n"
             '"""'
         )
         variables = {
@@ -224,8 +233,8 @@ set
             "Review test coverage",
         ]
         assert block_data["schedule"] == [
-            ("begin", "2025-01-01"),
-            ("finish", "2025-01-31"),
+            ("set", "2025-01-01"),
+            ("end", "2025-01-31"),
         ]
 
     def test_parse_code_case_insensitive_keys(self) -> None:
@@ -238,7 +247,7 @@ set
             "Task 1\n"
             '"""\n'
             'SCHEDULE: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -247,7 +256,7 @@ set
         assert block_data["notes"] == " Notes with uppercase key"
         assert block_data["tags"] == {"tag1", "tag2"}
         assert block_data["tasks"] == ["Task 1"]
-        assert block_data["schedule"] == [("action", "2025-01-01")]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
 
     def test_parse_code_mixed_case_keys(self) -> None:
         """Test that field keys with mixed case are handled correctly."""
@@ -259,7 +268,7 @@ set
             "Task 1\n"
             '"""\n'
             'ScHeDuLe: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -268,22 +277,18 @@ set
         assert block_data["notes"] == " Mixed case notes"
         assert block_data["tags"] == {"tag1", "tag2"}
         assert block_data["tasks"] == ["Task 1"]
-        assert block_data["schedule"] == [("action", "2025-01-01")]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
 
     def test_parse_code_empty_tags(self) -> None:
         """Test parse_code with empty tags field."""
         code = (
-            "Title: Empty Tags\n"
-            "Tags: \n"
-            'Schedule: """\n'
-            "action 2025-01-01\n"
-            '"""'
+            "Title: Empty Tags\n" "Tags: \n" 'Schedule: """\n' "set 2025-01-01\n" '"""'
         )
         block_data = parse_code(code, {})
 
         assert block_data["title"] == " Empty Tags"
         assert block_data["tags"] == set()
-        assert block_data["schedule"] == [("action", "2025-01-01")]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
 
     def test_parse_code_empty_tasks(self) -> None:
         """Test parse_code with empty tasks field."""
@@ -291,14 +296,14 @@ set
             "Title: Empty Tasks\n"
             "Tasks: \n"
             'Schedule: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         block_data = parse_code(code, {})
 
         assert block_data["title"] == " Empty Tasks"
         assert block_data["tasks"] == []
-        assert block_data["schedule"] == [("action", "2025-01-01")]
+        assert block_data["schedule"] == [("set", "2025-01-01")]
 
     def test_parse_code_empty_schedule(self) -> None:
         """Test parse_code with empty schedule field."""
@@ -319,8 +324,8 @@ set
             "   Task 2   \n"
             '"""\n'
             'Schedule: """\n'
-            "   action1   2025-01-01   \n"
-            "   action2   2025-01-02   \n"
+            "   set   2025-01-01   \n"
+            "   end   2025-01-02   \n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -330,8 +335,8 @@ set
         assert block_data["tags"] == {"tag1", "tag2", "tag3"}
         assert block_data["tasks"] == ["   Task 1   ", "   Task 2   "]
         assert block_data["schedule"] == [
-            ("action1", "2025-01-01"),
-            ("action2", "2025-01-02"),
+            ("set", "2025-01-01"),
+            ("end", "2025-01-02"),
         ]
 
     def test_parse_code_multiline_fields(self) -> None:
@@ -354,8 +359,8 @@ set
             "Third task\n"
             '"""\n'
             'Schedule: """\n'
-            "start 2025-01-01\n"
-            "middle 2025-01-15\n"
+            "set 2025-01-01\n"
+            "end 2025-01-15\n"
             "end 2025-01-31\n"
             '"""'
         )
@@ -369,8 +374,8 @@ set
         assert block_data["tags"] == {"tag1", "tag2", "tag3"}
         assert block_data["tasks"] == ["First task", "Second task", "Third task"]
         assert block_data["schedule"] == [
-            ("start", "2025-01-01"),
-            ("middle", "2025-01-15"),
+            ("set", "2025-01-01"),
+            ("end", "2025-01-15"),
             ("end", "2025-01-31"),
         ]
 
@@ -390,10 +395,10 @@ set
             "Task 2\n"
             '"""\n'
             'Schedule: """\n'
-            "action1 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""\n'
             'Schedule: """\n'
-            "action2 2025-01-02\n"
+            "end 2025-01-02\n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -402,14 +407,14 @@ set
         assert block_data["notes"] == " Second Notes"
         assert block_data["tags"] == {"tag3", "tag4"}
         assert block_data["tasks"] == ["Task 2"]
-        assert block_data["schedule"] == [("action2", "2025-01-02")]
+        assert block_data["schedule"] == [("end", "2025-01-02")]
 
     def test_parse_code_variable_error_handling(self) -> None:
         """Test parse_code with undefined variables."""
         code = (
             "Title: {undefined_var} Project\n"
             'Schedule: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         with pytest.raises(ValueError, match="Variable 'undefined_var' is undefined"):
@@ -421,7 +426,7 @@ set
             "Title: Valid Title\n"
             "Invalid Field\n"
             'Schedule: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         with pytest.raises(
@@ -432,7 +437,7 @@ set
 
     def test_parse_code_empty_value_error(self) -> None:
         """Test parse_code with empty field value."""
-        code = "Title:\n" 'Schedule: """\n' "action 2025-01-01\n" '"""'
+        code = "Title:\n" 'Schedule: """\n' "set 2025-01-01\n" '"""'
         with pytest.raises(ValueError, match="Value cannot be empty in line 1"):
             parse_code(code, {})
 
@@ -443,7 +448,7 @@ set
             'Notes: """\n'
             "This note never closes\n"
             'Schedule: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         with pytest.raises(
@@ -477,8 +482,8 @@ set
             "Task with <>&\"'` characters\n"
             '"""\n'
             'Schedule: """\n'
-            "action1 2025-01-01 12:00:00\n"
-            "action2 2025-01-02 23:59:59\n"
+            "set 2025-01-01 12:00:00\n"
+            "end 2025-01-02 23:59:59\n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -495,8 +500,8 @@ set
             "Task with <>&\"'` characters",
         ]
         assert block_data["schedule"] == [
-            ("action1", "2025-01-01 12:00:00"),
-            ("action2", "2025-01-02 23:59:59"),
+            ("set", "2025-01-01 12:00:00"),
+            ("end", "2025-01-02 23:59:59"),
         ]
 
     def test_parse_code_unicode_characters(self) -> None:
@@ -510,8 +515,8 @@ set
             "Fix emoji bug: 🐛\n"
             '"""\n'
             'Schedule: """\n'
-            "start 🚀 2025-01-01\n"
-            "finish 🎯 2025-01-31\n"
+            "set 🚀 2025-01-01\n"
+            "end 🎯 2025-01-31\n"
             '"""'
         )
         block_data = parse_code(code, {})
@@ -524,8 +529,8 @@ set
             "Fix emoji bug: 🐛",
         ]
         assert block_data["schedule"] == [
-            ("start", "🚀 2025-01-01"),
-            ("finish", "🎯 2025-01-31"),
+            ("set", "🚀 2025-01-01"),
+            ("end", "🎯 2025-01-31"),
         ]
 
     def test_parse_code_missing_required_fields(self) -> None:
@@ -535,7 +540,7 @@ set
             "Notes: Some notes\n"
             "Tags: tag1, tag2\n"
             'Schedule: """\n'
-            "action 2025-01-01\n"
+            "set 2025-01-01\n"
             '"""'
         )
         with pytest.raises(ValueError, match="Missing required field: 'title'"):
@@ -559,3 +564,43 @@ set
         )
         with pytest.raises(ValueError, match="Missing required field: 'title'"):
             parse_code(code_missing_both, {})
+
+    def test_parse_code_invalid_schedule_actions(self) -> None:
+        """Test parse_code with invalid schedule actions."""
+        # Test invalid action "start"
+        code_invalid_action = (
+            "Title: Invalid Action Test\n" 'Schedule: """\n' "start 2025-01-01\n" '"""'
+        )
+        with pytest.raises(ValueError, match="Invalid action: start"):
+            parse_code(code_invalid_action, {})
+
+        # Test invalid action "finish"
+        code_invalid_action2 = (
+            "Title: Invalid Action Test 2\n"
+            'Schedule: """\n'
+            "finish 2025-01-31\n"
+            '"""'
+        )
+        with pytest.raises(ValueError, match="Invalid action: finish"):
+            parse_code(code_invalid_action2, {})
+
+        # Test invalid action "begin"
+        code_invalid_action3 = (
+            "Title: Invalid Action Test 3\n"
+            'Schedule: """\n'
+            "begin 2025-01-01\n"
+            '"""'
+        )
+        with pytest.raises(ValueError, match="Invalid action: begin"):
+            parse_code(code_invalid_action3, {})
+
+        # Test mixed valid and invalid actions
+        code_mixed_actions = (
+            "Title: Mixed Actions Test\n"
+            'Schedule: """\n'
+            "set 2025-01-01\n"
+            "invalid_action 2025-01-02\n"
+            '"""'
+        )
+        with pytest.raises(ValueError, match="Invalid action: invalid_action"):
+            parse_code(code_mixed_actions, {})
