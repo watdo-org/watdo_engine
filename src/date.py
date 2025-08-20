@@ -4,9 +4,9 @@ import dateparser
 
 def parse_date_string(
     date_string: str,
-    relative_base: datetime.datetime,
+    relative_base: datetime.datetime | None = None,
 ) -> datetime.datetime | None:
     return dateparser.parse(
         date_string,
-        settings={"RELATIVE_BASE": relative_base},
+        settings=None if relative_base is None else {"RELATIVE_BASE": relative_base},
     )
