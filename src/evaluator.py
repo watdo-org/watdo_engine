@@ -1,6 +1,6 @@
 import datetime
 from typing import Generator
-import dateparser
+from .date import parse_date_string
 from .block import Action, ScheduleEntry
 
 
@@ -13,10 +13,7 @@ def generate_timeline(
             yield action, None
 
         else:
-            date = dateparser.parse(
-                date_string,
-                settings={"RELATIVE_BASE": relative_base},
-            )
+            date = parse_date_string(date_string, relative_base)
 
             if date is None:
                 raise ValueError(f"Failed parsing '{date_string}'")
