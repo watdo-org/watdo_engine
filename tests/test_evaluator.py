@@ -1,17 +1,8 @@
 import datetime
 import pytest
-import dateparser
 from src.block import ScheduleEntry
 from src.evaluator import generate_timeline, evaluate_schedule
-
-
-def parse_date(date_string: str) -> datetime.datetime:
-    dt = dateparser.parse(date_string)
-
-    if dt is None:
-        raise ValueError(date_string)
-
-    return dt
+from tests.utils import parse_date
 
 
 class TestGenerateTimeline:
