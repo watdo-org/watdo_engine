@@ -1,8 +1,24 @@
 import datetime
 from src.date import parse_date_string
+from tests.utils import parse_date
 
 
 class TestParseDateString:
+    def test_relative_operation(self) -> None:
+        assert parse_date_string("Aug 1, 2025 -> in 4 days") == parse_date("Aug 5 2025")
+        assert parse_date_string("Aug 1, 2025->in 2 months") == parse_date("Oct 1 2025")
+        assert parse_date_string("Aug 1, 2025 ->in 3 years") == parse_date("Aug 1 2028")
+        assert parse_date_string("Aug 9 2025 -> 4 days ago") == parse_date("Aug 5 2025")
+        assert parse_date_string(
+            "in 3 days -> in 4 days->1 days",  # + 3 days + 4 days - 1 day
+            parse_date("Aug 10, 2000"),
+        ) == parse_date("Aug 16 2000")
+
+    def test_relative_operation_invalid(self) -> None:
+        assert parse_date_string("") is None
+        assert parse_date_string("-> Aug 1, 2025 -> in 4 days") is None
+        assert parse_date_string("Aug 1, 2025 -> in 4 days ->") is None
+
     def test_absolute_date(self) -> None:
         """Test parsing absolute date strings"""
         base = datetime.datetime(2024, 1, 15, 12, 0, 0)
