@@ -37,6 +37,9 @@ def parse_field(field: Field) -> PartialBlockData:
 
         return {"tasks": tasks}
 
+    elif key == "timezone":
+        return {"timezone": field["value"].strip()}
+
     elif key == "schedule":
         schedule: list[ScheduleEntry] = []
 
@@ -77,6 +80,7 @@ def parse_code(code: str, variables: dict[str, str]) -> BlockData:
             "notes": partial_block_data.get("notes", None),
             "tags": partial_block_data.get("tags", None),
             "tasks": partial_block_data.get("tasks", None),
+            "timezone": partial_block_data.get("timezone", None),
             "schedule": partial_block_data["schedule"],
         }
     except KeyError as error:

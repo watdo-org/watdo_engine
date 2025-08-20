@@ -9,6 +9,7 @@ class PartialBlockData(TypedDict, total=False):
     notes: str | None
     tags: set[str] | None
     tasks: list[str] | None
+    timezone: str | None
     schedule: list[ScheduleEntry]
 
 
@@ -17,4 +18,5 @@ class BlockData(TypedDict, total=True):
     notes: str | None
     tags: set[str] | None
     tasks: list[str] | None
+    timezone: str | None
     schedule: list[ScheduleEntry]

@@ -32,7 +32,10 @@ class TestEvaluateSchedule:
 
     def test_valid_date(self) -> None:
         assert (
-            evaluate_schedule([("set", "in 6 months")], datetime.datetime.now())
+            evaluate_schedule(
+                [("set", "in 6 months")],
+                datetime.datetime.now(tz=datetime.timezone.utc),
+            )
             is False
         )
 

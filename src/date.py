@@ -5,15 +5,19 @@ import dateparser
 def parse_date_string(
     date_string_expression: str,
     relative_base: datetime.datetime | None = None,
+    *,
+    timezone: str | None = None,
 ) -> datetime.datetime | None:
     last_date: datetime.datetime
 
     for date_string in date_string_expression.split("->"):
         date = dateparser.parse(
             date_string,
-            settings=(
-                None if relative_base is None else {"RELATIVE_BASE": relative_base}
-            ),
+            settings={
+                "TIMEZONE": timezone or "UTC",
+                "RETURN_AS_TIMEZONE_AWARE": True,
+                **({} if relative_base is None else {"RELATIVE_BASE": relative_base}),
+            },
         )
 
         if date is None:

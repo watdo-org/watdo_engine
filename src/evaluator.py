@@ -7,13 +7,15 @@ from .block import Action, ScheduleEntry
 def generate_timeline(
     schedule: list[ScheduleEntry],
     relative_base: datetime.datetime,
+    *,
+    timezone: str | None = None,
 ) -> Generator[tuple[Action, datetime.datetime | None], None, None]:
     for action, date_string in schedule:
         if date_string is None:
             yield action, None
 
         else:
-            date = parse_date_string(date_string, relative_base)
+            date = parse_date_string(date_string, relative_base, timezone=timezone)
 
             if date is None:
                 raise ValueError(f"Failed parsing '{date_string}'")
@@ -24,10 +26,13 @@ def generate_timeline(
 def evaluate_schedule(
     schedule: list[ScheduleEntry],
     evaluation_date: datetime.datetime,
+    *,
+    timezone: str | None = None,
 ) -> bool:
+    timeline = generate_timeline(schedule, evaluation_date, timezone=timezone)
     evaluation = False
 
-    for action, date in generate_timeline(schedule, evaluation_date):
+    for action, date in timeline:
         if date is None:
             evaluation = action == "set"
 
