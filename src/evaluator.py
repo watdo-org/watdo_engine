@@ -25,11 +25,12 @@ def generate_timeline(
 
 def evaluate_schedule(
     schedule: list[ScheduleEntry],
-    evaluation_date: datetime.datetime,
     *,
+    relative_base: datetime.datetime,
+    evaluation_date: datetime.datetime,
     timezone: str | None = None,
 ) -> bool:
-    timeline = generate_timeline(schedule, evaluation_date, timezone=timezone)
+    timeline = generate_timeline(schedule, relative_base, timezone=timezone)
     evaluation = False
 
     for action, date in timeline:

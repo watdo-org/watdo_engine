@@ -20,21 +20,34 @@ class TestGenerateTimeline:
 
 class TestEvaluateSchedule:
     def test_empty_schedule(self) -> None:
-        assert evaluate_schedule([], datetime.datetime.now()) is False
+        now = datetime.datetime.now()
+        assert evaluate_schedule([], relative_base=now, evaluation_date=now) is False
 
     def test_action_only(self) -> None:
-        assert evaluate_schedule([("set", None)], datetime.datetime.now()) is True
-        assert evaluate_schedule([("end", None)], datetime.datetime.now()) is False
+        now = datetime.datetime.now()
+        assert (
+            evaluate_schedule([("set", None)], relative_base=now, evaluation_date=now)
+            is True
+        )
+        assert (
+            evaluate_schedule([("end", None)], relative_base=now, evaluation_date=now)
+            is False
+        )
 
     def test_invalid_date(self) -> None:
+        now = datetime.datetime.now()
         with pytest.raises(ValueError, match="Failed parsing 'every 6 months'"):
-            evaluate_schedule([("set", "every 6 months")], datetime.datetime.now())
+            evaluate_schedule(
+                [("set", "every 6 months")], relative_base=now, evaluation_date=now
+            )
 
     def test_valid_date(self) -> None:
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         assert (
             evaluate_schedule(
                 [("set", "in 6 months")],
-                datetime.datetime.now(tz=datetime.timezone.utc),
+                relative_base=now,
+                evaluation_date=now,
             )
             is False
         )
@@ -50,11 +63,47 @@ class TestEvaluateSchedule:
             ("set", None),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("July 31, 2025")) is True
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025")) is False
-        assert evaluate_schedule(schedule, parse_date("Sep 30, 2025")) is True
-        assert evaluate_schedule(schedule, parse_date("Oct 1, 2025")) is False
-        assert evaluate_schedule(schedule, parse_date("Oct 2, 2025")) is True
+        base_date = parse_date("Jan 1, 2025")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("July 31, 2025"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Aug 14, 2025"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Sep 30, 2025"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Oct 1, 2025"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Oct 2, 2025"),
+            )
+            is True
+        )
 
     def test_same_day(self) -> None:
         """
@@ -66,7 +115,15 @@ class TestEvaluateSchedule:
             ("end", "Oct 1 2025"),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("Oct 1, 2025")) is True
+        base_date = parse_date("Jan 1, 2025")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Oct 1, 2025"),
+            )
+            is True
+        )
 
     def test_future_action_only(self) -> None:
         schedule: list[ScheduleEntry] = [
@@ -76,10 +133,39 @@ class TestEvaluateSchedule:
             ("end", "Oct 1 2025"),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025")) is False
-        assert evaluate_schedule(schedule, parse_date("Sep 1, 2025")) is False
-        assert evaluate_schedule(schedule, parse_date("Sep 2, 2025")) is True
-        assert evaluate_schedule(schedule, parse_date("Oct 1, 2025")) is False
+        base_date = parse_date("Jan 1, 2025")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Aug 14, 2025"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Sep 1, 2025"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Sep 2, 2025"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Oct 1, 2025"),
+            )
+            is False
+        )
 
     def test_relativity(self) -> None:
         schedule: list[ScheduleEntry] = [
@@ -87,11 +173,56 @@ class TestEvaluateSchedule:
             ("end", "11:00 AM"),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025 at 8 AM")) is False
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025 at 9 AM")) is True
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025 at 10 AM")) is True
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025 at 11 AM")) is False
-        assert evaluate_schedule(schedule, parse_date("Aug 14, 2025 at 12 PM")) is False
+        # For time-only schedules, use the evaluation date as the relative base
+        eval_date_8am = parse_date("Aug 14, 2025 at 8 AM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_8am,
+                evaluation_date=eval_date_8am,
+            )
+            is False
+        )
+
+        eval_date_9am = parse_date("Aug 14, 2025 at 9 AM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_9am,
+                evaluation_date=eval_date_9am,
+            )
+            is True
+        )
+
+        eval_date_10am = parse_date("Aug 14, 2025 at 10 AM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_10am,
+                evaluation_date=eval_date_10am,
+            )
+            is True
+        )
+
+        eval_date_11am = parse_date("Aug 14, 2025 at 11 AM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_11am,
+                evaluation_date=eval_date_11am,
+            )
+            is False
+        )
+
+        eval_date_12pm = parse_date("Aug 14, 2025 at 12 PM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_12pm,
+                evaluation_date=eval_date_12pm,
+            )
+            is False
+        )
 
     # New test cases for time-only scenarios
     def test_time_only_schedule(self) -> None:
@@ -102,26 +233,75 @@ class TestEvaluateSchedule:
         ]
 
         # Test on different dates but same times
+        eval_date_859 = parse_date("Jan 1, 2025 at 8:59 AM")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_859,
+                evaluation_date=eval_date_859,
+            )
+            is False
         )
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:00 AM")) is True
+
+        eval_date_900 = parse_date("Jan 1, 2025 at 9:00 AM")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 12:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_900,
+                evaluation_date=eval_date_900,
+            )
+            is True
         )
+
+        eval_date_1200 = parse_date("Jan 1, 2025 at 12:00 PM")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1200,
+                evaluation_date=eval_date_1200,
+            )
+            is True
         )
+
+        eval_date_1700 = parse_date("Jan 1, 2025 at 5:00 PM")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 6:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1700,
+                evaluation_date=eval_date_1700,
+            )
+            is False
+        )
+
+        eval_date_1800 = parse_date("Jan 1, 2025 at 6:00 PM")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1800,
+                evaluation_date=eval_date_1800,
+            )
+            is False
         )
 
         # Test on different dates
+        eval_date_feb = parse_date("Feb 15, 2025 at 10:00 AM")
         assert (
-            evaluate_schedule(schedule, parse_date("Feb 15, 2025 at 10:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_feb,
+                evaluation_date=eval_date_feb,
+            )
+            is True
         )
+
+        eval_date_mar = parse_date("Mar 30, 2025 at 3:00 PM")
         assert (
-            evaluate_schedule(schedule, parse_date("Mar 30, 2025 at 3:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_mar,
+                evaluation_date=eval_date_mar,
+            )
+            is True
         )
 
     def test_time_only_24_hour_format(self) -> None:
@@ -131,11 +311,55 @@ class TestEvaluateSchedule:
             ("end", "18:00"),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("Dec 25, 2025 at 13:59")) is False
-        assert evaluate_schedule(schedule, parse_date("Dec 25, 2025 at 14:00")) is True
-        assert evaluate_schedule(schedule, parse_date("Dec 25, 2025 at 16:00")) is True
-        assert evaluate_schedule(schedule, parse_date("Dec 25, 2025 at 18:00")) is False
-        assert evaluate_schedule(schedule, parse_date("Dec 25, 2025 at 19:00")) is False
+        eval_date_1359 = parse_date("Dec 25, 2025 at 13:59")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1359,
+                evaluation_date=eval_date_1359,
+            )
+            is False
+        )
+
+        eval_date_1400 = parse_date("Dec 25, 2025 at 14:00")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1400,
+                evaluation_date=eval_date_1400,
+            )
+            is True
+        )
+
+        eval_date_1600 = parse_date("Dec 25, 2025 at 16:00")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1600,
+                evaluation_date=eval_date_1600,
+            )
+            is True
+        )
+
+        eval_date_1800 = parse_date("Dec 25, 2025 at 18:00")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1800,
+                evaluation_date=eval_date_1800,
+            )
+            is False
+        )
+
+        eval_date_1900 = parse_date("Dec 25, 2025 at 19:00")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=eval_date_1900,
+                evaluation_date=eval_date_1900,
+            )
+            is False
+        )
 
     def test_time_only_with_am_pm_variations(self) -> None:
         """Test time-only schedules with various AM/PM formats."""
@@ -144,52 +368,94 @@ class TestEvaluateSchedule:
             ("end", "4:30 PM"),
         ]
 
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:29 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 9:29 AM"),
+            )
+            is False
         )
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:30 AM")) is True
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 2:15 PM")) is True
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 4:30 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 9:30 AM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 4:31 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 2:15 PM"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 4:30 PM"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 4:31 PM"),
+            )
+            is False
         )
 
     def test_time_only_overnight_schedule(self) -> None:
-        """Test time-only schedules that span overnight (e.g., night shift).
-
-        Note: The current evaluator has a limitation - it doesn't handle overnight
-        time spans correctly. When parsing time-only strings like "10:00 PM" to "6:00 AM",
-        dateparser assumes they're on the same day, so the logic doesn't work as expected
-        for schedules that cross midnight.
-        """
+        base_date = parse_date("today")
         schedule: list[ScheduleEntry] = [
             ("set", "10:00 PM"),
-            ("end", "6:00 AM"),
+            ("end", "tomorrow at 6:00 AM"),
         ]
 
-        # Test during the night shift
-        # Current behavior: dateparser treats all times as same-day
-        # So "10:00 PM" becomes 22:00 and "6:00 AM" becomes 06:00 on the same day
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:59 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("9:59 PM"),
+            )
+            is False
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 10:00 PM")) is True
-        )
-        # At 2:00 AM, the evaluator sees:
-        # - "set" at 22:00 (10:00 PM) - 22:00 <= 02:00 is False, so evaluation = False
-        # - "end" at 06:00 (6:00 AM) - 06:00 <= 02:00 is False, so it breaks
-        # Result: False (not active)
-        assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 2:00 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("10:00 PM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 6:00 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("tomorrow at 5:59 AM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 7:00 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("tomorrow at 6:00 AM"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("tomorrow at 6:01 AM"),
+            )
+            is False
         )
 
     def test_time_only_minute_precision(self) -> None:
@@ -199,16 +465,46 @@ class TestEvaluateSchedule:
             ("end", "5:45 PM"),
         ]
 
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:14 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 9:14 AM"),
+            )
+            is False
         )
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:15 AM")) is True
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 12:30 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 9:15 AM"),
+            )
+            is True
         )
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 5:44 PM")) is True
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 5:45 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 12:30 PM"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 5:44 PM"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 5:45 PM"),
+            )
+            is False
         )
 
     # New test cases for date + time scenarios
@@ -220,24 +516,50 @@ class TestEvaluateSchedule:
         ]
 
         # Test before the scheduled time
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 8:59 AM"),
+            )
+            is False
         )
         # Test at the start time
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 9:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 9:00 AM"),
+            )
+            is True
         )
         # Test during the scheduled time
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 12:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 12:00 PM"),
+            )
+            is True
         )
         # Test at the end time
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 5:00 PM"),
+            )
+            is False
         )
         # Test after the scheduled time
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 5:01 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 5:01 PM"),
+            )
+            is False
         )
 
     def test_date_time_multiple_days(self) -> None:
@@ -248,24 +570,50 @@ class TestEvaluateSchedule:
         ]
 
         # Test before the scheduled period
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 8:59 AM"),
+            )
+            is False
         )
         # Test at the start
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 9:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 9:00 AM"),
+            )
+            is True
         )
         # Test during the period
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 16, 2025 at 12:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 16, 2025 at 12:00 PM"),
+            )
+            is True
         )
         # Test at the end
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 17, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 17, 2025 at 5:00 PM"),
+            )
+            is False
         )
         # Test after the period
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 17, 2025 at 5:01 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 17, 2025 at 5:01 PM"),
+            )
+            is False
         )
 
     def test_date_time_iso_format(self) -> None:
@@ -275,11 +623,47 @@ class TestEvaluateSchedule:
             ("end", "2025-01-15T17:00:00"),
         ]
 
-        assert evaluate_schedule(schedule, parse_date("2025-01-15T08:59:59")) is False
-        assert evaluate_schedule(schedule, parse_date("2025-01-15T09:00:00")) is True
-        assert evaluate_schedule(schedule, parse_date("2025-01-15T13:00:00")) is True
-        assert evaluate_schedule(schedule, parse_date("2025-01-15T17:00:00")) is False
-        assert evaluate_schedule(schedule, parse_date("2025-01-15T17:00:01")) is False
+        base_date = parse_date("Jan 1, 2025")
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("2025-01-15T08:59:59"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("2025-01-15T09:00:00"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("2025-01-15T13:00:00"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("2025-01-15T17:00:00"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("2025-01-15T17:00:01"),
+            )
+            is False
+        )
 
     def test_date_time_relative_dates(self) -> None:
         """Test schedules with relative date-time expressions."""
@@ -293,7 +677,9 @@ class TestEvaluateSchedule:
 
         # This would need to be adjusted based on how dateparser handles "tomorrow"
         # For now, we'll test the basic functionality
-        assert evaluate_schedule(schedule, base_date) in [
+        assert evaluate_schedule(
+            schedule, relative_base=base_date, evaluation_date=base_date
+        ) in [
             True,
             False,
         ]  # Depends on relative parsing
@@ -305,17 +691,38 @@ class TestEvaluateSchedule:
             ("end", "2025-01-15T17:00:00"),
         ]
 
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 8:59 AM"),
+            )
+            is False
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 9:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 9:00 AM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 12:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 12:00 PM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 15, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 15, 2025 at 5:00 PM"),
+            )
+            is False
         )
 
     def test_date_time_edge_cases(self) -> None:
@@ -326,17 +733,38 @@ class TestEvaluateSchedule:
         ]
 
         # Test year boundary
+        base_date = parse_date("Jan 1, 2024")
         assert (
-            evaluate_schedule(schedule, parse_date("Dec 31, 2024 at 11:58 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Dec 31, 2024 at 11:58 PM"),
+            )
+            is False
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Dec 31, 2024 at 11:59 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Dec 31, 2024 at 11:59 PM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 12:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 12:00 AM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 12:01 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 12:01 AM"),
+            )
+            is False
         )
 
     def test_date_time_leap_year(self) -> None:
@@ -347,17 +775,38 @@ class TestEvaluateSchedule:
         ]
 
         # 2024 is a leap year
+        base_date = parse_date("Jan 1, 2024")
         assert (
-            evaluate_schedule(schedule, parse_date("Feb 29, 2024 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Feb 29, 2024 at 8:59 AM"),
+            )
+            is False
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Feb 29, 2024 at 9:00 AM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Feb 29, 2024 at 9:00 AM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Feb 29, 2024 at 12:00 PM")) is True
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Feb 29, 2024 at 12:00 PM"),
+            )
+            is True
         )
         assert (
-            evaluate_schedule(schedule, parse_date("Feb 29, 2024 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Feb 29, 2024 at 5:00 PM"),
+            )
+            is False
         )
 
     def test_date_time_dst_transitions(self) -> None:
@@ -370,20 +819,37 @@ class TestEvaluateSchedule:
 
         # Note: This test depends on the specific DST rules and may need adjustment
         # for the actual implementation and timezone handling
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule_spring, parse_date("Mar 9, 2025 at 1:59 AM"))
+            evaluate_schedule(
+                schedule_spring,
+                relative_base=base_date,
+                evaluation_date=parse_date("Mar 9, 2025 at 1:59 AM"),
+            )
             is False
         )
         assert (
-            evaluate_schedule(schedule_spring, parse_date("Mar 9, 2025 at 2:00 AM"))
+            evaluate_schedule(
+                schedule_spring,
+                relative_base=base_date,
+                evaluation_date=parse_date("Mar 9, 2025 at 2:00 AM"),
+            )
             is True
         )
         assert (
-            evaluate_schedule(schedule_spring, parse_date("Mar 9, 2025 at 3:00 AM"))
+            evaluate_schedule(
+                schedule_spring,
+                relative_base=base_date,
+                evaluation_date=parse_date("Mar 9, 2025 at 3:00 AM"),
+            )
             is True
         )
         assert (
-            evaluate_schedule(schedule_spring, parse_date("Mar 9, 2025 at 4:00 AM"))
+            evaluate_schedule(
+                schedule_spring,
+                relative_base=base_date,
+                evaluation_date=parse_date("Mar 9, 2025 at 4:00 AM"),
+            )
             is False
         )
 
@@ -399,7 +865,9 @@ class TestEvaluateSchedule:
         # For now, we'll test that it doesn't crash
         base_date = parse_date("Jan 15, 2025 at 12:00 PM")  # A Wednesday
         try:
-            result = evaluate_schedule(schedule, base_date)
+            result = evaluate_schedule(
+                schedule, relative_base=base_date, evaluation_date=base_date
+            )
             assert result in [True, False]  # Valid boolean result
         except ValueError:
             # If dateparser can't handle this format, that's acceptable
@@ -415,7 +883,9 @@ class TestEvaluateSchedule:
 
         # Test with a specific base date
         base_date = parse_date("Jan 15, 2025 at 12:00 PM")  # A Wednesday
-        result = evaluate_schedule(schedule, base_date)
+        result = evaluate_schedule(
+            schedule, relative_base=base_date, evaluation_date=base_date
+        )
         assert result in [True, False]  # Valid boolean result
 
     def test_date_time_quarterly_schedule(self) -> None:
@@ -432,15 +902,52 @@ class TestEvaluateSchedule:
         ]
 
         # Test Q1
+        base_date = parse_date("Jan 1, 2025")
         assert (
-            evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 8:59 AM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 8:59 AM"),
+            )
+            is False
         )
-        assert evaluate_schedule(schedule, parse_date("Jan 1, 2025 at 9:00 AM")) is True
         assert (
-            evaluate_schedule(schedule, parse_date("Mar 31, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jan 1, 2025 at 9:00 AM"),
+            )
+            is True
         )
-        assert evaluate_schedule(schedule, parse_date("Apr 1, 2025 at 9:00 AM")) is True
         assert (
-            evaluate_schedule(schedule, parse_date("Jun 30, 2025 at 5:00 PM")) is False
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Mar 31, 2025 at 5:00 PM"),
+            )
+            is False
         )
-        assert evaluate_schedule(schedule, parse_date("Jul 1, 2025 at 9:00 AM")) is True
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Apr 1, 2025 at 9:00 AM"),
+            )
+            is True
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jun 30, 2025 at 5:00 PM"),
+            )
+            is False
+        )
+        assert (
+            evaluate_schedule(
+                schedule,
+                relative_base=base_date,
+                evaluation_date=parse_date("Jul 1, 2025 at 9:00 AM"),
+            )
+            is True
+        )
