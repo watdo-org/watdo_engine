@@ -29,21 +29,24 @@ def evaluate_schedule(
     relative_base: datetime.datetime,
     evaluation_date: datetime.datetime,
     timezone: str | None = None,
-) -> bool:
+) -> tuple[bool, datetime.datetime | None]:
     timeline = generate_timeline(schedule, relative_base, timezone=timezone)
     evaluation = False
+    matched_date: datetime.datetime | None = None
 
     for action, date in timeline:
         if date is None:
             evaluation = action == "set"
+            matched_date = date
 
         else:
             if date <= evaluation_date:
                 evaluation = action == "set"
+                matched_date = date
             else:
                 break
 
             if date == evaluation_date:
                 break
 
-    return evaluation
+    return evaluation, matched_date
